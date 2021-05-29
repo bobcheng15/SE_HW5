@@ -55,7 +55,7 @@ class MODEL:
     # 'W' : a list of weight matrices. E.g., W[0] is the weight matrix connected input layer and 1st hidden layer.
     def __init__(self, network_struct, learning_rate, bias=None):
         # Local variables
-        self.network_struct = networ_struct
+        self.network_struct = network_struct
         self.learning_rate = learning_rate 
         self.W = initWeights(network_struct) # Initialize weight metrices
 
@@ -103,7 +103,7 @@ def makeDataBatches(batch_size, data_x_part, data_y_part):
     
     while True:
         if (start+batch_size) > data_x_part.shape[1]:
-            continue
+            break
         index_list.append( (start, start+batch_size) )
         start += batch_size
     index_list.append( (start, data_x_part.shape[1]) )
@@ -206,9 +206,9 @@ def backwardPropagate(model, Intermediates, truth_y):
     # Prepare 'Z' and 'A' for convenient notation which would be used later.
     Z, A = {}, []
     for i in range(len(Intermediates)):
+        #print(i)
         Z[i-1] = Intermediates[i]['pre_act']
-        A[i-1] = Intermediates[i]['post_act']
-    
+        A.insert(i-1, Intermediates[i]['post_act'])
     nabla_W = [numpy.zeros(each_W.shape) for each_W in model.W] # Initialization
     
     # BP for output layer
@@ -290,7 +290,7 @@ def avoidZeroValue(numpy_ndarray):
 def printEpochAndLoss(model, data_x_part, data_y_part, epoch):
     ce_loss = 0.0
     predict_y_s = inference(model, data_x_part)
-    for i in range(predict_y_s.shape[1])
+    for i in range(predict_y_s.shape[1]):
         ce_loss += FUNC.crossEntropy(predict_y_s[:, i], data_y_part[:, i])
     print("Epoch=%d, Total loss=%.2f"%(int(epoch), ce_loss/epoch))
 
@@ -307,14 +307,14 @@ def generatePkFromSource():
     # Prepare absolute paths of input files
     working_dir           = pathlib.Path().absolute()
     train_image_file_path = os.path.join(working_dir, "train-images.idx3-ubyte")
-    train_label_file_path = os.path.join(working_dir, "tn-labels.idx1-ubyte")
-    test_image_file_path  = os.path.join(working_dir, "tk-images.idx3-ubyte")
+    train_label_file_path = os.path.join(working_dir, "train-labels.idx1-ubyte")
+    test_image_file_path  = os.path.join(working_dir, "t10k-images.idx3-ubyte")
     test_label_file_path  = os.path.join(working_dir, "t10k-labels.idx1-ubyte")
     
     print("Load data (may take a few minutes).")
     # Load data from files
-    train_x_part, train_y_part = loaddata(train_image_file_path, train_label_file_path)
-    test_x_part, test_y_part   = loaddata(test_image_file_path, test_label_file_path)
+    train_x_part, train_y_part = loadData(train_image_file_path, train_label_file_path)
+    test_x_part, test_y_part   = loadData(test_image_file_path, test_label_file_path)
     
     print("Store data from memory into .pickle file.")
     with open('train-images.pickle', 'wb') as fp: pickle.dump(train_x_part, fp)
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     generatePkFromSource()
     
     print("Load data from .pickle.")
-    with open('train-image.pickle', 'rb') as fp: train_x_part = pickle.load(fp)
+    with open('train-images.pickle', 'rb') as fp: train_x_part = pickle.load(fp)
     with open('train-labels.pickle', 'rb') as fp: train_y_part = pickle.load(fp)
     with open('test-images.pickle', 'rb') as fp: test_x_part = pickle.load(fp)
     with open('test-labels.pickle', 'rb') as fp: test_y_part = pickle.load(fp)
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     # Shuffle data
     shuffle      = numpy.random.permutation(train_x_part.shape[1])
     train_x_part = train_x_part[:, shuffle]
-    train_y_part = train_x_part[:, shuffle]
+    train_y_part = train_y_part[:, shuffle]
     shuffle      = numpy.random.permutation(test_x_part.shape[1])
     test_x_part  = test_x_part[:, shuffle]
     test_y_part  = test_y_part[:, shuffle]
@@ -346,14 +346,13 @@ if __name__ == "__main__":
     print("Generate training set & validation set.")
     # Splitting TRAINING data into validation set (30%) and training set (70%)
     valid_num        = int(train_x_part.shape[1] * CONST.v_t_ratio())
-    train_x_part_P30 = train_x_part[:, valid_num:]
+    train_x_part_P30 = train_x_part[:, :valid_num]
     train_x_part_P70 = train_x_part[:, valid_num:]
     train_y_part_P30 = train_y_part[:, :valid_num]
     train_y_part_P70 = train_y_part[:, valid_num:]
     
-    nn_struct = [CONST.input_dim(), 'aaa', 3, CONST.output_dim()]
+    nn_struct = [CONST.input_dim(),  3, CONST.output_dim()]
     HW1_NN    = MODEL(network_struct=nn_struct, learning_rate=0.05)
-    
     print("Start training a model.\n")
     HW1_NN = trainModel(CONST.epoch(), HW1_NN, train_x_part_P70, train_y_part_P70, train_x_part_P30, train_y_part_P30)
     print("\nEnd training.")
